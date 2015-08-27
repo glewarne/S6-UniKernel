@@ -21,6 +21,7 @@
 #include <linux/of.h>
 #include <linux/i2c-gpio.h>
 #include <asm/gpio.h>
+#include <linux/variant_detection.h>
 
 /* GPIO STATUS */
 #define SS_VALUE	0	/* Low  = Single Sim */
@@ -72,6 +73,9 @@ static int check_simslot_count(struct seq_file *m, void *v)
 		}
 		gpio_free(gpio_number);
 	}
+
+	if (variant_edge == IS_EDGE)
+		support_number_of_simslot = SINGLE_SIM;
 
 	if(support_number_of_simslot < 0)
 	{

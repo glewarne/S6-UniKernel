@@ -16,7 +16,8 @@
 
 #include "../dsim.h"
 
-#include "panel_info.h"
+//#include "panel_info.h"
+#define S6E3HF2_LCDTYPE_WQHD	0
 
 unsigned int s6e3hf2_lcd_type = S6E3HF2_LCDTYPE_WQHD;
 
@@ -26,6 +27,8 @@ unsigned int s6e3hf2_lcd_type = S6E3HF2_LCDTYPE_WQHD;
 #include "s6e3hf2_wqhd_aid_dimming.h"
 #endif
 
+#include "s6e3hf2_wqhd_param.h"
+#include <linux/variant_detection.h>
 
 #ifdef CONFIG_PANEL_AID_DIMMING
 static const unsigned char *HBM_TABLE[HBM_STATUS_MAX] = {SEQ_HBM_OFF, SEQ_HBM_ON};
@@ -552,7 +555,7 @@ static int set_gamma_to_hbm(struct SmtDimInfo *brInfo, struct dim_data *dimData,
 }
 
 /* gamma interpolaion table */
-const unsigned int tbl_hbm_inter[7] = {
+const unsigned int tbl_hbm_inter_edge[7] = {
 	94, 201, 311, 431, 559, 670, 789
 };
 
@@ -599,12 +602,12 @@ static int interpolation_gamma_to_hbm(struct SmtDimInfo *dimInfo, int br_idx)
 
 				if (hbm_tmp > ref_tmp) {
 					gap = hbm_tmp - ref_tmp;
-					rst = (gap * tbl_hbm_inter[tmp]) >> 10;
+					rst = (gap * tbl_hbm_inter_edge[tmp]) >> 10;
 					rst += ref_tmp;
 				}
 				else {
 					gap = ref_tmp - hbm_tmp;
-					rst = (gap * tbl_hbm_inter[tmp]) >> 10;
+					rst = (gap * tbl_hbm_inter_edge[tmp]) >> 10;
 					rst = ref_tmp - rst;
 				}
 				result[idx++] = (unsigned char)((rst >> 8) & 0x01);
@@ -617,12 +620,12 @@ static int interpolation_gamma_to_hbm(struct SmtDimInfo *dimInfo, int br_idx)
 
 				if (hbm_tmp > ref_tmp) {
 					gap = hbm_tmp - ref_tmp;
-					rst = (gap * tbl_hbm_inter[tmp]) >> 10;
+					rst = (gap * tbl_hbm_inter_edge[tmp]) >> 10;
 					rst += ref_tmp;
 				}
 				else {
 					gap = ref_tmp - hbm_tmp;
-					rst = (gap * tbl_hbm_inter[tmp]) >> 10;
+					rst = (gap * tbl_hbm_inter_edge[tmp]) >> 10;
 					rst = ref_tmp - rst;
 				}
 				result[idx++] = (unsigned char)rst & 0xff;
@@ -1582,7 +1585,7 @@ static const unsigned int hmt_br_tbl [256] = {
 	93, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 105
 };
 
-struct SmtDimInfo hmt_dimming_info[HMT_MAX_BR_INFO] = {
+struct SmtDimInfo hmt_dimming_info_edge[HMT_MAX_BR_INFO] = {
 	{.br = 10, .refBr = 52, .cGma = gma2p15, .rTbl = HMTrtbl10nit, .cTbl = HMTctbl10nit, .aid = HMTaid8001, .elvCaps = HMTelvCaps, .elv = HMTelv},
 	{.br = 11, .refBr = 57, .cGma = gma2p15, .rTbl = HMTrtbl11nit, .cTbl = HMTctbl11nit, .aid = HMTaid8001_1, .elvCaps = HMTelvCaps, .elv = HMTelv},
 	{.br = 12, .refBr = 61, .cGma = gma2p15, .rTbl = HMTrtbl12nit, .cTbl = HMTctbl12nit, .aid = HMTaid8001_2, .elvCaps = HMTelvCaps, .elv = HMTelv},
@@ -1639,7 +1642,7 @@ static int hmt_init_dimming(struct dsim_device *dsim, u8 *mtp)
 		goto error;
 	}
 
-	diminfo = hmt_dimming_info;
+	diminfo = hmt_dimming_info_edge;
 
 	panel->hmt_dim_data= (void *)dimming;
 	panel->hmt_dim_info = (void *)diminfo;
@@ -2241,7 +2244,7 @@ struct dsim_panel_ops s6e3hf2_panel_ops = {
 	.dump 		= s6e3hf2_wqhd_dump,
 };
 
-struct dsim_panel_ops *dsim_panel_get_priv_ops(struct dsim_device *dsim)
+struct dsim_panel_ops *dsim_panel_get_priv_ops_edge(struct dsim_device *dsim)
 {
 	return &s6e3hf2_panel_ops;
 }
@@ -2249,6 +2252,8 @@ struct dsim_panel_ops *dsim_panel_get_priv_ops(struct dsim_device *dsim)
 static int __init s6e3hf2_get_lcd_type(char *arg)
 {
 	unsigned int lcdtype;
+	if (variant_edge == NOT_EDGE)
+		return 0;
 
 	get_option(&arg, &lcdtype);
 

@@ -35,6 +35,7 @@
 #include "es705-platform.h"
 #include "es705-i2c.h"
 #include "es705-uart-common.h"
+#include <linux/variant_detection.h>
 
 static int es705_i2c_read(struct es705_priv *es705, void *buf, int len)
 {
@@ -264,6 +265,8 @@ static int es705_i2c_probe(struct i2c_client *i2c,
 {
 	struct esxxx_platform_data *pdata;
 	int rc = 0;
+	if (variant_aif_required == NO_AIF)
+		return rc;
 
 	dev_dbg(&i2c->dev, "%s(): i2c->name = %s\n", __func__, i2c->name);
 
@@ -314,6 +317,9 @@ pdata_error:
 static int es705_i2c_remove(struct i2c_client *i2c)
 {
 	struct esxxx_platform_data *pdata = i2c->dev.platform_data;
+
+	if (variant_aif_required == NO_AIF)
+		return 0;
 
 	es705_gpio_free(pdata);
 

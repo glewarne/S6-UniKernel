@@ -25,6 +25,7 @@
 #include <linux/gpio.h>
 #include <linux/miscdevice.h>
 #include <linux/uaccess.h>
+#include <linux/variant_detection.h>
 
 #ifndef USE_OPEN_CLOSE
 #define USE_OPEN_CLOSE
@@ -2653,7 +2654,9 @@ static int __init touchkey_init(void)
 #ifdef TEST_JIG_MODE
 	int ret;
 #endif
-
+	if (variant_edge == IS_EDGE) {
+		return;
+	}
 	i2c_add_driver(&touchkey_i2c_driver);
 
 #ifdef TEST_JIG_MODE
@@ -2666,6 +2669,9 @@ static int __init touchkey_init(void)
 
 static void __exit touchkey_exit(void)
 {
+	if (variant_edge == IS_EDGE) {
+		return;
+	}
 	i2c_del_driver(&touchkey_i2c_driver);
 	touchkey_probe = false;
 }

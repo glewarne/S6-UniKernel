@@ -18,24 +18,6 @@ config SWITCH_ANTENNA
         help
           Say Y here to enable Antenna switch based switch support.
 
-config SWITCH_ANTENNA_IF
-        tristate "ANTENNA Swith control by IF detect"
-        depends on GPIOLIB
-        help
-          Say Y here to enable Antenna switch control by IF detect.
-
-config SWITCH_ANTENNA_EARJACK
-        tristate "ANTENNA Swith control by EARJACK detect"
-        depends on GPIOLIB
-        help
-          Say Y here to enable Antenna switch control by EARJACK detect.
-
-config SWITCH_ANTENNA_EARJACK_IF
-        tristate "ANTENNA Swith control by IF or EARJACK detect"
-        depends on GPIOLIB
-        help
-          Say Y here to enable Antenna switch control by IF or EARJACK detect.
-
 config SWITCH_ARIZONA
 	tristate "Wolfson Arizona Switch support"
 	depends on MFD_ARIZONA && INPUT && SND_SOC

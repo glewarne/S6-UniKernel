@@ -14,6 +14,7 @@
  */
 
 #include "ssp_dev.h"
+#include <linux/variant_detection.h>
 
 /*
 extern int poweroff_charging;
@@ -220,8 +221,13 @@ static int ssp_parse_dt(struct device *dev,
 	if (of_property_read_u32(np, "ssp,acc-position", &data->accel_position))
 		data->accel_position = 0;
 
-	if (of_property_read_u32(np, "ssp,mag-position", &data->mag_position))
-		data->mag_position = 0;
+	if (variant_edge == IS_EDGE) {
+		if (of_property_read_u32(np, "ssp,mag-position_E", &data->mag_position))
+			data->mag_position = 0;
+	} else {
+		if (of_property_read_u32(np, "ssp,mag-position", &data->mag_position))
+			data->mag_position = 0;
+	}
 
 	ssp_info("acc-posi[%d] mag-posi[%d]",
 			data->accel_position, data->mag_position);
@@ -239,8 +245,13 @@ static int ssp_parse_dt(struct device *dev,
 		data->uProxHiThresh_default, data->uProxLoThresh_default);
 
 #ifdef CONFIG_SENSORS_MULTIPLE_GLASS_TYPE
-    	if (of_property_read_u32(np, "ssp-glass-type", &data->glass_type))
-		    data->glass_type = 0;
+	if (variant_edge == IS_EDGE) {
+	    	if (of_property_read_u32(np, "ssp-glass-type_E", &data->glass_type))
+			    data->glass_type = 0;
+	} else {
+	    	if (of_property_read_u32(np, "ssp-glass-type", &data->glass_type))
+			    data->glass_type = 0;
+	}
 #endif
 
 	/* acc type */

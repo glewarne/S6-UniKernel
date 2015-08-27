@@ -32,6 +32,7 @@
 
 #include <linux/mfd/arizona/core.h>
 #include <linux/mfd/arizona/registers.h>
+#include <linux/variant_detection.h>
 
 #include "arizona.h"
 
@@ -1247,7 +1248,10 @@ static int arizona_of_get_core_pdata(struct arizona *arizona)
 
 	arizona_of_get_dmicref(arizona, "wlf,dmic-ref");
 
-	arizona_of_get_inmode(arizona, "wlf,inmode");
+	if (variant_aif_required == HAS_AIF)
+		arizona_of_get_inmode(arizona, "wlf,inmode_T");
+	else
+		arizona_of_get_inmode(arizona, "wlf,inmode_F");
 
 	arizona_of_read_u32_array(arizona, "wlf,out-mono", false,
 				  out_mono, ARRAY_SIZE(out_mono));

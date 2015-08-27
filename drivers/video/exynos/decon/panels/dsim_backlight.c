@@ -15,7 +15,8 @@
 
 #include "../dsim.h"
 #include "dsim_backlight.h"
-#include "panel_info.h"
+#include "s6e3hf2_wqhd_param.h"
+#include <linux/variant_detection.h>
 
 #ifdef CONFIG_PANEL_AID_DIMMING
 #include "aid_dimming.h"
@@ -410,7 +411,7 @@ static int low_level_set_brightness(struct dsim_device *dsim ,int force)
 	dsim_panel_set_tset(dsim, force);
 
 #ifdef CONFIG_LCD_ALPM
-	if (!(dsim->priv.current_alpm && dsim->priv.alpm))
+	if (!(dsim->priv.current_alpm && dsim->priv.alpm && variant_edge == IS_EDGE))
 #endif
 		dsim_panel_set_hbm(dsim, force);
 

@@ -18,6 +18,7 @@
 #endif
 #include <linux/sec_debug.h>
 #include <linux/sec_batt.h>
+#include <linux/variant_detection.h>
 
 #define DEBUG
 
@@ -225,8 +226,14 @@ static int ssp_parse_dt(struct device *dev,struct  ssp_data *data)
 
 	if (of_property_read_u32(np, "ssp-acc-position", &data->accel_position))
 		data->accel_position = 0;
-	if (of_property_read_u32(np, "ssp-mag-position", &data->mag_position))
-		data->mag_position = 0;
+
+	if (variant_edge == IS_EDGE) {
+		if (of_property_read_u32(np, "ssp-mag-position_E", &data->mag_position))
+			data->mag_position = 0;
+	} else {
+		if (of_property_read_u32(np, "ssp-mag-position", &data->mag_position))
+			data->mag_position = 0;
+	}
 
 	pr_info("[SSP] acc-posi[%d] mag-posi[%d]\n",
 		data->accel_position, data->mag_position);
@@ -262,15 +269,37 @@ static int ssp_parse_dt(struct device *dev,struct  ssp_data *data)
 		data->uProxHiThresh_cal, data->uProxLoThresh_cal);
 
 #ifdef CONFIG_SENSORS_MULTIPLE_GLASS_TYPE
-    	if (of_property_read_u32(np, "ssp-glass-type", &data->glass_type))
-		    data->glass_type = 0;
+	if (variant_edge == IS_EDGE) {
+	    	if (of_property_read_u32(np, "ssp-glass-type_E", &data->glass_type))
+			    data->glass_type = 0;
+	} else {
+	    	if (of_property_read_u32(np, "ssp-glass-type", &data->glass_type))
+			    data->glass_type = 0;
+	}
 #endif
 
 #if defined(CONFIG_SENSORS_SSP_YAS532) || defined(CONFIG_SENSORS_SSP_YAS537)
-	if (!of_get_property(np, "ssp-mag-array", &len)) {
-		pr_info("[SSP] No static matrix at DT for YAS532!(%p)\n", data->static_matrix);
-		goto dt_exit;
-	}
+	if (model_type == VARDET_G920T || model_type == VARDET_G920W8) {
+		if (!of_get_property(np, "ssp-mag-array_T", &len)) {
+			pr_info("[SSP] No static matrix at DT for YAS532!(%p)\n", data->static_matrix);
+			goto dt_exit;
+		}
+	} else if (model_type == VARDET_G920F || model_type == VARDET_G920I) {
+		if (!of_get_property(np, "ssp-mag-array_F", &len)) {
+			pr_info("[SSP] No static matrix at DT for YAS532!(%p)\n", data->static_matrix);
+			goto dt_exit;
+		}
+	} else if (variant_edge == IS_EDGE) {
+		if (!of_get_property(np, "ssp-mag-array_E", &len)) {
+			pr_info("[SSP] No static matrix at DT for YAS532!(%p)\n", data->static_matrix);
+			goto dt_exit;
+		}
+	} else {
+		if (!of_get_property(np, "ssp-mag-array_K", &len)) {
+			pr_info("[SSP] No static matrix at DT for YAS532!(%p)\n", data->static_matrix);
+			goto dt_exit;
+		}
+ 	}
 	if (len/4 != 9) {
 		pr_err("[SSP] Length/4:%d should be 9 for YAS532!\n", len/4);
 		goto dt_exit;
@@ -278,12 +307,38 @@ static int ssp_parse_dt(struct device *dev,struct  ssp_data *data)
 	data->static_matrix = kzalloc(9*sizeof(s16), GFP_KERNEL);
 	pr_info("[SSP] static matrix Length:%d, Len/4=%d\n", len, len/4);
 
-	for (i = 0; i < 9; i++) {
-		if (of_property_read_u32_index(np, "ssp-mag-array", i, &temp)) {
-			pr_err("[SSP] %s cannot get u32 of array[%d]!\n", __func__, i);
-			goto dt_exit;
+	if (model_type == VARDET_G920T || model_type == VARDET_G920W8) {
+		for (i = 0; i < 9; i++) {
+			if (of_property_read_u32_index(np, "ssp-mag-array_T", i, &temp)) {
+				pr_err("[SSP] %s cannot get u32 of array[%d]!\n", __func__, i);
+				goto dt_exit;
+			}
+			*(data->static_matrix+i) = (int)temp;
 		}
-		*(data->static_matrix+i) = (int)temp;
+	} else if (model_type == VARDET_G920F || model_type == VARDET_G920I) {
+		for (i = 0; i < 9; i++) {
+			if (of_property_read_u32_index(np, "ssp-mag-array_F", i, &temp)) {
+				pr_err("[SSP] %s cannot get u32 of array[%d]!\n", __func__, i);
+				goto dt_exit;
+			}
+			*(data->static_matrix+i) = (int)temp;
+		}
+	} else if (variant_edge == IS_EDGE) {
+		for (i = 0; i < 9; i++) {
+			if (of_property_read_u32_index(np, "ssp-mag-array_E", i, &temp)) {
+				pr_err("[SSP] %s cannot get u32 of array[%d]!\n", __func__, i);
+				goto dt_exit;
+			}
+			*(data->static_matrix+i) = (int)temp;
+		}
+	} else {
+		for (i = 0; i < 9; i++) {
+			if (of_property_read_u32_index(np, "ssp-mag-array_K", i, &temp)) {
+				pr_err("[SSP] %s cannot get u32 of array[%d]!\n", __func__, i);
+				goto dt_exit;
+			}
+			*(data->static_matrix+i) = (int)temp;
+ 		}
 	}
 #endif
 	return errorno;

@@ -51,6 +51,7 @@
 #include "./panels/lcd_ctrl.h"
 #include "../../../staging/android/sw_sync.h"
 #include "vpp/vpp_core.h"
+#include <linux/variant_detection.h>
 
 #define SUCCESS_EXYNOS_SMC	2
 #define TRACE_VPP_LOG(d, prot) ({	\
@@ -4391,8 +4392,10 @@ static int decon_register_esd_funcion(struct decon_device *decon)
 	esd->err_irq = 0;
 	esd->pcd_gpio = 0;
 	esd->disp_det_gpio = 0;
-
-	gpio = of_get_named_gpio(dev->of_node, "gpio_pcd", 0);
+	
+	if (variant_edge == NOT_EDGE) {
+		gpio = of_get_named_gpio(dev->of_node, "gpio_pcd", 0);
+	}
 	if (gpio_is_valid(gpio)) {
 		decon_info("esd : found gpio_pcd success\n");
 		esd->pcd_irq = gpio_to_irq(gpio);

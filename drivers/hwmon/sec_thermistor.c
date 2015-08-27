@@ -31,6 +31,7 @@
 #include <linux/iio/consumer.h>
 #include <linux/platform_data/sec_thermistor.h>
 #include <linux/sec_sysfs.h>
+#include <linux/variant_detection.h>
 
 #define ADC_SAMPLING_CNT	7
 
@@ -86,8 +87,13 @@ sec_therm_parse_dt(struct platform_device *pdev)
 	if (!pdata)
 		return ERR_PTR(-ENOMEM);
 
-	if (!of_get_property(np, "adc_array", &len1))
-		return ERR_PTR(-ENOENT);
+	if (variant_edge == IS_EDGE) {
+		if (!of_get_property(np, "adc_array_E", &len1))
+			return ERR_PTR(-ENOENT);
+	} else {
+		if (!of_get_property(np, "adc_array", &len1))
+			return ERR_PTR(-ENOENT);
+	}
 	if (!of_get_property(np, "temp_array", &len2))
 		return ERR_PTR(-ENOENT);
 
@@ -105,8 +111,13 @@ sec_therm_parse_dt(struct platform_device *pdev)
 		return ERR_PTR(-ENOMEM);
 
 	for (i = 0; i < pdata->adc_arr_size; i++) {
-		if (of_property_read_u32_index(np, "adc_array", i, &adc))
-			return ERR_PTR(-EINVAL);
+		if (variant_edge == IS_EDGE) {
+			if (of_property_read_u32_index(np, "adc_array_E", i, &adc))
+				return ERR_PTR(-EINVAL);
+		} else {
+			if (of_property_read_u32_index(np, "adc_array", i, &adc))
+				return ERR_PTR(-EINVAL);
+		}
 		if (of_property_read_u32_index(np, "temp_array", i, &temp))
 			return ERR_PTR(-EINVAL);
 

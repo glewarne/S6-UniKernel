@@ -10,7 +10,7 @@
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
 */
-
+#include <linux/variant_detection.h>
 #include <linux/lcd.h>
 #include "../dsim.h"
 
@@ -82,7 +82,10 @@ static int dsim_panel_early_probe(struct dsim_device *dsim)
 	int ret = 0;
 	struct panel_private *panel = &dsim->priv;
 
-	panel->ops = dsim_panel_get_priv_ops(dsim);
+	if (variant_edge == IS_EDGE)
+		panel->ops = dsim_panel_get_priv_ops_edge(dsim);
+	else
+		panel->ops = dsim_panel_get_priv_ops(dsim);
 
 	if (panel->ops->early_probe) {
 		ret = panel->ops->early_probe(dsim);
@@ -158,7 +161,8 @@ static int dsim_panel_displayon(struct dsim_device *dsim)
 	struct panel_private *panel = &dsim->priv;
 
 #ifdef CONFIG_LCD_ALPM
-	mutex_lock(&panel->alpm_lock);
+	if (variant_edge == IS_EDGE)
+		mutex_lock(&panel->alpm_lock);
 #endif
 
 	if (panel->state == PANEL_STATE_SUSPENED) {
@@ -187,7 +191,8 @@ static int dsim_panel_displayon(struct dsim_device *dsim)
 
 displayon_err:
 #ifdef CONFIG_LCD_ALPM
-	mutex_unlock(&panel->alpm_lock);
+	if (variant_edge == IS_EDGE)
+		mutex_unlock(&panel->alpm_lock);
 #endif
 	return ret;
 }
