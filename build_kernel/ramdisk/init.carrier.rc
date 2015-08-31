@@ -1,0 +1,22 @@
+import init.gps.rc
+
+on boot
+    # SEC_PRODUCT_FEATURE_COMMON_USE_MULTISIM
+    setprop ro.multisim.simslotcount 1
+
+on fs
+# 2nd RIL
+service ril-daemon1 /system/bin/rild -l /system/lib64/libsec-ril-dsds.so -c 2
+    class main
+    socket rild2 stream 660 root radio
+    socket rild-debug2 stream 660 radio system
+    user root
+    group radio cache inet misc audio sdcard_r sdcard_rw log
+    disabled
+
+#SLocation
+service cellgeofenced /system/bin/cellgeofenced
+    class main
+    socket cellgeofence seqpacket 0660 gps system
+    user gps
+    group system inet

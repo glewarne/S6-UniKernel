@@ -1,0 +1,42 @@
+on init
+    mkdir /efs 0771 radio system
+    symlink /dev/block/platform/15570000.ufs/by-name/RADIO /dev/mbin0
+    restorecon /dev/mbin0
+
+    symlink  /sys/devices/10f24000.mipi-lli /dev/mipi-lli
+
+    write /sys/class/net/rmnet0/queues/rx-0/rps_cpus 7
+    write /sys/class/net/rmnet1/queues/rx-0/rps_cpus 7
+    write /sys/class/net/rmnet2/queues/rx-0/rps_cpus 7
+    write /sys/class/net/rmnet3/queues/rx-0/rps_cpus 7
+    write /sys/class/net/rmnet4/queues/rx-0/rps_cpus 7
+    write /sys/class/net/rmnet5/queues/rx-0/rps_cpus 7
+    write /sys/class/net/rmnet6/queues/rx-0/rps_cpus 7
+    write /sys/class/net/rmnet7/queues/rx-0/rps_cpus 7
+    write /proc/sys/net/core/netdev_max_backlog 5000
+
+on fs
+# MIF
+    chown radio radio sys/devices/virtual/misc/multipdp/waketime
+    chmod 0660 /sys/devices/virtual/misc/umts_dm0/dm_state
+    chown radio system /sys/devices/virtual/misc/umts_dm0/dm_state
+
+# CP Boot Daemon (CBD)
+service cpboot-daemon /sbin/cbd -d -t ss333 -b s -m l -P platform/15570000.ufs/by-name/RADIO
+    class main
+    user root
+    group radio cache inet misc audio sdcard_r sdcard_rw log shell
+    seclabel u:r:cbd:s0
+on property:persist.sys.cpboot=disable
+    stop cpboot-daemon
+
+#RIL diagexe for CP
+service DIAG-daemon /system/bin/diagexe
+    class main
+    user root
+    group system radio inet net_raw
+
+on property:ro.debuggable=1
+	write /sys/kernel/debug/tracing/buffer_size_kb 1408
+	write /sys/kernel/debug/tracing/set_event modem_if:mif_log
+	write /sys/kernel/debug/tracing/tracing_on 1
