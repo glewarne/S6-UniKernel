@@ -32,9 +32,89 @@ struct hall_drvdata {
 	struct work_struct work;
 	struct delayed_work flip_cover_dwork;
 	struct wake_lock flip_wake_lock;
+/* WorkAround for Hall IRQ Noise problem in connect to GGSM band */
+#ifdef CONFIG_SENSORS_HALL_IRQ_CTRL
+	struct mutex irq_lock;
+	bool gsm_area;
+	bool irq_state;
+	bool cover_state;
+#endif
 };
 
 static bool flip_cover = 1;
+
+/* WorkAround for Hall IRQ Noise problem in connect to GGSM band */
+#ifdef CONFIG_SENSORS_HALL_IRQ_CTRL
+struct hall_drvdata *g_drvdata;
+
+#define enable_hall_irq() \
+	do { \
+		if (g_drvdata->irq_state == false) { \
+			g_drvdata->irq_state = true; \
+			enable_irq(g_drvdata->irq_flip_cover); \
+			pr_info("%s():irq is enabled\n", __func__);\
+		} else { \
+			pr_info("%s():irq is already enabled\n",\
+					__func__);\
+		}\
+	} while (0)
+
+#define disable_hall_irq() \
+	do { \
+		if (g_drvdata->irq_state == true) { \
+			g_drvdata->irq_state = false; \
+			disable_irq(g_drvdata->irq_flip_cover); \
+			pr_info("%s():irq is disabled\n", __func__);\
+		} else { \
+			pr_info("%s():irq is already disabled\n",\
+					__func__);\
+		}\
+	} while (0)
+
+void hall_irq_set(int state, bool auth_changed)
+{
+	if (auth_changed)
+		g_drvdata->cover_state = state;
+
+	pr_info("%s: gsm: %d, cover: %d, irq: %d, state: %d, auth: %d\n",
+			__func__, g_drvdata->gsm_area, g_drvdata->cover_state,
+			g_drvdata->irq_state, state, auth_changed);
+
+	if (g_drvdata->gsm_area) {
+		mutex_lock(&g_drvdata->irq_lock);
+
+		if (state)
+			enable_hall_irq();
+		else
+			disable_hall_irq();
+
+		mutex_unlock(&g_drvdata->irq_lock);
+	}
+}
+
+static ssize_t hall_irq_ctrl_store(struct device *dev,
+		struct device_attribute *attr, const char *buf,
+		size_t count)
+{
+	pr_info("%s: %s\n", __func__, buf);
+
+	if (!strncasecmp(buf, "ON", 2)) {
+		g_drvdata->gsm_area = true;
+		if (!g_drvdata->cover_state)
+			hall_irq_set(disable, false);
+	} else if (!strncasecmp(buf, "OFF", 3)) {
+		hall_irq_set(enable, false);
+		g_drvdata->gsm_area = false;
+	} else {
+		pr_info("%s: Wrong command, current state %s\n",
+			__func__, g_drvdata->gsm_area?"ON":"OFF");
+	}
+
+	return count;
+}
+
+static DEVICE_ATTR(hall_irq_ctrl, 0664, NULL, hall_irq_ctrl_store);
+#endif
 
 static ssize_t hall_detect_show(struct device *dev,
 				struct device_attribute *attr, char *buf)
@@ -51,6 +131,10 @@ static DEVICE_ATTR(hall_detect, 0664, hall_detect_show, NULL);
 
 static struct attribute *hall_attrs[] = {
 	&dev_attr_hall_detect.attr,
+/* WorkAround for Hall IRQ Noise problem in connect to GGSM band */
+#ifdef CONFIG_SENSORS_HALL_IRQ_CTRL
+	&dev_attr_hall_irq_ctrl.attr,
+#endif
 	NULL,
 };
 
@@ -122,6 +206,10 @@ out:
 static void flip_cover_work(struct work_struct *work)
 {
 	bool first;
+/* WorkAround for Hall IRQ Noise problem in connect to GGSM band */
+#ifdef CONFIG_SENSORS_HALL_IRQ_CTRL
+	bool second;
+#endif
 	struct hall_drvdata *ddata =
 		container_of(work, struct hall_drvdata,
 				flip_cover_dwork.work);
@@ -129,6 +217,19 @@ static void flip_cover_work(struct work_struct *work)
 	first = gpio_get_value(ddata->gpio_flip_cover);
 
 	printk("[keys] %s flip_status : %d (%s)\n", __func__, first, first?"open":"close");
+
+/* WorkAround for Hall IRQ Noise problem in connect to GGSM band */
+#ifdef CONFIG_SENSORS_HALL_IRQ_CTRL
+	if (g_drvdata->gsm_area) {
+		pr_info("%s: NDT\n", __func__);
+		mdelay(10);
+		second = gpio_get_value(ddata->gpio_flip_cover);
+		if (first != second) {
+			pr_info("%s: NDT, not stable value\n", __func__);
+			return;
+		}
+	}
+#endif
 
 	flip_cover = first;
 	input_report_switch(ddata->input,
@@ -209,6 +310,10 @@ static void init_hall_ic_irq(struct input_dev *input)
 		irq, ddata->gpio_flip_cover);
 	} else {
 		pr_info("%s : success\n", __func__);
+/* WorkAround for Hall IRQ Noise problem in connect to GGSM band */
+#ifdef CONFIG_SENSORS_HALL_IRQ_CTRL
+		g_drvdata->irq_state = true;
+#endif
 	}
 }
 
@@ -295,6 +400,15 @@ static int hall_probe(struct platform_device *pdev)
 	/* Enable auto repeat feature of Linux input subsystem */
 	__set_bit(EV_REP, input->evbit);
 
+/* WorkAround for Hall IRQ Noise problem in connect to GGSM band */
+#ifdef CONFIG_SENSORS_HALL_IRQ_CTRL
+	mutex_init(&ddata->irq_lock);
+
+	ddata->gsm_area = false;
+	ddata->cover_state = false;
+	g_drvdata = ddata;
+#endif
+
 	init_hall_ic_irq(input);
 
 	error = sysfs_create_group(&sec_key->kobj, &hall_attr_group);
@@ -367,7 +481,17 @@ static int hall_suspend(struct device *dev)
 
 /* need to be change */
 /* Without below one line, it is not able to get the irq during freezing */
+
+/* WorkAround for Hall IRQ Noise problem in connect to GGSM band */
+#ifdef CONFIG_SENSORS_HALL_IRQ_CTRL
+	/* gsm_area can be controlled only in hall_irq_set */
+	if (!g_drvdata->cover_state && g_drvdata->gsm_area)
+		disable_irq_wake(ddata->irq_flip_cover);
+	else
+		enable_irq_wake(ddata->irq_flip_cover);
+#else
 	enable_irq_wake(ddata->irq_flip_cover);
+#endif
 
 	if (device_may_wakeup(dev)) {
 		enable_irq_wake(ddata->irq_flip_cover);
@@ -391,6 +515,12 @@ static int hall_resume(struct device *dev)
 	status = gpio_get_value(ddata->gpio_flip_cover);
 	printk("[keys] %s flip_status : %d (%s)\n", __func__, status, status?"open":"close");
 	input_sync(input);
+/* WorkAround for Hall IRQ Noise problem in connect to GGSM band */
+#ifdef CONFIG_SENSORS_HALL_IRQ_CTRL
+	/* gsm_area can be controlled only in hall_irq_set */
+	if (g_drvdata->cover_state && g_drvdata->gsm_area)
+		hall_irq_set(enable, false);
+#endif
 
 	return 0;
 }

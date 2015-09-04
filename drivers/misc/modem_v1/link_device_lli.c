@@ -83,12 +83,11 @@ mem_link_device instance.
 static void forbid_cp_sleep(struct mem_link_device *mld)
 {
 	struct modem_link_pm *pm = &mld->link_dev.pm;
-	int ref_cnt;
 
-	ref_cnt = atomic_inc_return(&mld->ref_cnt);
-	mif_debug("ref_cnt %d\n", ref_cnt);
+	atomic_inc(&pm->ref_cnt);
+	mif_debug("ref_cnt %d\n", atomic_read(&pm->ref_cnt));
 
-	if (ref_cnt > 1)
+	if (atomic_read(&pm->ref_cnt) > 1)
 		return;
 
 	if (pm->request_hold)
@@ -110,16 +109,13 @@ than or equal to 0.
 static void permit_cp_sleep(struct mem_link_device *mld)
 {
 	struct modem_link_pm *pm = &mld->link_dev.pm;
-	int ref_cnt;
 
-	ref_cnt = atomic_dec_return(&mld->ref_cnt);
-	if (ref_cnt > 0)
+	if (atomic_dec_return(&pm->ref_cnt) > 0)
 		return;
 
-	if (ref_cnt < 0) {
-		mif_info("WARNING! ref_cnt %d < 0\n", ref_cnt);
-		atomic_set(&mld->ref_cnt, 0);
-		ref_cnt = 0;
+	if (atomic_read(&pm->ref_cnt) < 0) {
+		mif_err("[WARN] ref_cnt %d < 0\n", atomic_read(&pm->ref_cnt));
+		atomic_set(&pm->ref_cnt, 0);
 	}
 
 	if (pm->release_hold)
@@ -217,7 +213,7 @@ static int init_pm(struct mem_link_device *mld)
 	int ret;
 
 	spin_lock_init(&mld->sig_lock);
-	atomic_set(&mld->ref_cnt, 0);
+	atomic_set(&pm->ref_cnt, 0);
 
 	pm_svc = NULL;
 

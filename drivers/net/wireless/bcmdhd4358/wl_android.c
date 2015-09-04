@@ -21,7 +21,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: wl_android.c 561856 2015-06-08 05:23:58Z $
+ * $Id: wl_android.c 573644 2015-07-23 09:09:34Z $
  */
 
 #include <linux/module.h>
@@ -52,6 +52,9 @@
 #ifdef WL_NAN
 #include <wl_cfgnan.h>
 #endif /* WL_NAN */
+#ifdef DHDTCPACK_SUPPRESS
+#include <dhd_ip.h>
+#endif /* DHDTCPACK_SUPPRESS */
 
 /*
  * Android private command strings, PLEASE define new private commands here
@@ -2374,13 +2377,26 @@ wl_android_set_sarlimit_txctrl(struct net_device *dev, const char* string_num)
 	return 1;
 }
 #ifdef SET_RPS_CPUS
-	static int
+static int
 wl_android_set_rps_cpus(struct net_device *dev, char *command, int total_len)
 {
 	int error, enable;
 
 	enable = command[strlen(CMD_RPSMODE) + 1] - '0';
 	error = dhd_rps_cpus_enable(dev, enable);
+
+#if defined(DHDTCPACK_SUPPRESS) && defined(BCMPCIE) && defined(WL_CFG80211)
+	if (!error) {
+		void *dhdp = wl_cfg80211_get_dhdp();
+		if (enable) {
+			DHD_TRACE(("%s : set ack suppress. TCPACK_SUP_HOLD.\n", __FUNCTION__));
+			dhd_tcpack_suppress_set(dhdp, TCPACK_SUP_HOLD);
+		} else {
+			DHD_TRACE(("%s : clear ack suppress.\n", __FUNCTION__));
+			dhd_tcpack_suppress_set(dhdp, TCPACK_SUP_OFF);
+		}
+	}
+#endif /* DHDTCPACK_SUPPRESS && BCMPCIE && WL_CFG80211 */
 
 	return error;
 }
@@ -3617,13 +3633,10 @@ int wl_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 		char *country_code = command + strlen(CMD_COUNTRY) + 1;
 		bytes_written = wldev_set_country(net, country_code, true, true);
 #ifdef FCC_PWR_LIMIT_2G
-		{
+		if (wldev_iovar_setint(net, "fccpwrlimit2g", FALSE)) {
+			DHD_ERROR(("%s: fccpwrlimit2g deactivation is failed\n", __FUNCTION__));
+		} else {
 			DHD_ERROR(("%s: fccpwrlimit2g is deactivated\n", __FUNCTION__));
-			bytes_written = wldev_iovar_setint(net, "fccpwrlimit2g", FALSE);
-			if (bytes_written) {
-				DHD_ERROR(("%s: fccpwrlimit2g deactivate set error (%d)\n",
-					__FUNCTION__, bytes_written));
-			}
 		}
 #endif /* FCC_PWR_LIMIT_2G */
 	}
@@ -3669,13 +3682,10 @@ int wl_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 		bytes_written = wl_android_set_country_rev(net, command,
 		priv_cmd.total_len);
 #ifdef FCC_PWR_LIMIT_2G
-		{
+		if (wldev_iovar_setint(net, "fccpwrlimit2g", FALSE)) {
+			DHD_ERROR(("%s: fccpwrlimit2g deactivation is failed\n", __FUNCTION__));
+		} else {
 			DHD_ERROR(("%s: fccpwrlimit2g is deactivated\n", __FUNCTION__));
-			bytes_written = wldev_iovar_setint(net, "fccpwrlimit2g", FALSE);
-			if (bytes_written) {
-				DHD_ERROR(("%s: fccpwrlimit2g deactivate set error (%d)\n",
-					__FUNCTION__, bytes_written));
-			}
 		}
 #endif /* FCC_PWR_LIMIT_2G */
 	} else if (strnicmp(command, CMD_COUNTRYREV_GET,

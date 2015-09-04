@@ -393,4 +393,15 @@ config SENSORS_SSP_ZENLTE
  	  To compile this driver as a module, choose M here: the
  	  module will be called ssp.
 
+ config SENSORS_SSP_MARINELTE
+	tristate "MARINELTE Proejct"
+	default n
+	depends on SPI
+	help
+	  Binary file for ssp driver.
+          If you say yes here you get MARINELTE project support for
+       	  factory test.
+ 	  To compile this driver as a module, choose M here: the
+ 	  module will be called ssp.
+
 source "drivers/sensorhub/brcm/max_notchfilter/Kconfig"

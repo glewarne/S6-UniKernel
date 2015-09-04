@@ -189,6 +189,7 @@ int parse_dataframe(struct ssp_data *data, char *dataframe, int frame_len)
 				if (sensortime.irq_diff > 1000000)
 					report_sensordata(data, sensor, &sensorsdata);
 				else if ((sensor == PROXIMITY_SENSOR) || (sensor == PROXIMITY_RAW)
+						|| (sensor == STEP_COUNTER)   || (sensor == STEP_DETECTOR)
 						|| (sensor == GESTURE_SENSOR) || (sensor == SIG_MOTION_SENSOR))
 					report_sensordata(data, sensor, &sensorsdata);
 				else

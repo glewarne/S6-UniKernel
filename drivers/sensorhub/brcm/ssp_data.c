@@ -317,6 +317,7 @@ int parse_dataframe(struct ssp_data *data, char *pchRcvDataFrame, int iLength)
 					data->report_sensor_data[iSensorData](data, &sensorsdata);
 				else if ((iSensorData == PROXIMITY_SENSOR) || (iSensorData == PROXIMITY_RAW)
 						|| (iSensorData == GESTURE_SENSOR) || (iSensorData == SIG_MOTION_SENSOR)
+						|| (iSensorData == STEP_COUNTER)   || (iSensorData == STEP_DETECTOR)
 						|| (iSensorData == TILT_DETECTOR))
 					data->report_sensor_data[iSensorData](data, &sensorsdata);
 				else

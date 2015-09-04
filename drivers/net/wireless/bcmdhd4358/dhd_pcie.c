@@ -21,7 +21,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: dhd_pcie.c 560455 2015-06-01 06:59:38Z $
+ * $Id: dhd_pcie.c 571881 2015-07-16 09:49:56Z $
  */
 
 
@@ -180,7 +180,7 @@ const bcm_iovar_t dhdpcie_iovars[] = {
 	{"pciecfgreg",	IOV_PCIECFGREG,	0,	IOVT_BUFFER,	2 * sizeof(int32) },
 	{"pciecorereg",	IOV_PCIECOREREG,	0,	IOVT_BUFFER,	2 * sizeof(int32) },
 	{"pcieserdesreg",	IOV_PCIESERDESREG,	0,	IOVT_BUFFER,	3 * sizeof(int32) },
-	{"bar0secwinreg",	IOV_BAR0_SECWIN_REG,	0,	IOVT_BUFFER,	2 * sizeof(int32) },
+	{"bar0secwinreg",	IOV_BAR0_SECWIN_REG,	0,	IOVT_BUFFER,	sizeof(sdreg_t) },
 	{"sbreg",	IOV_SBREG,	0,	IOVT_BUFFER,	sizeof(sdreg_t) },
 	{"pcie_dmaxfer",	IOV_PCIE_DMAXFER,	0,	IOVT_BUFFER,	3 * sizeof(int32) },
 	{"pcie_suspend", IOV_PCIE_SUSPEND,	0,	IOVT_UINT32,	0 },
@@ -2954,55 +2954,59 @@ dhdpcie_bus_doiovar(dhd_bus_t *bus, const bcm_iovar_t *vi, uint32 actionid, cons
 		bcopy(&int_val, arg, sizeof(int_val));
 		break;
 
-	case IOV_GVAL(IOV_BAR0_SECWIN_REG):
-	{
-		uint32 cur_base, base;
-		uchar *bar0;
-		volatile uint32 *offset;
-		/* set the bar0 secondary window to this */
-		/* write the register value */
-		cur_base = dhdpcie_bus_cfg_read_dword(bus, PCIE2_BAR0_CORE2_WIN, sizeof(uint));
-		base = int_val & 0xFFFFF000;
-		dhdpcie_bus_cfg_write_dword(bus, PCIE2_BAR0_CORE2_WIN,  sizeof(uint32), base);
-		bar0 = (uchar *)bus->regs;
-		offset = (uint32 *)(bar0 + 0x4000 + (int_val & 0xFFF));
-		int_val = *offset;
-		bcopy(&int_val, arg, val_size);
-		dhdpcie_bus_cfg_write_dword(bus, PCIE2_BAR0_CORE2_WIN, sizeof(uint32), cur_base);
-	}
-		break;
-	case IOV_SVAL(IOV_BAR0_SECWIN_REG):
-	{
-		uint32 cur_base, base;
-		uchar *bar0;
-		volatile uint32 *offset;
-		/* set the bar0 secondary window to this */
-		/* write the register value */
-		cur_base = dhdpcie_bus_cfg_read_dword(bus, PCIE2_BAR0_CORE2_WIN, sizeof(uint));
-		base = int_val & 0xFFFFF000;
-		dhdpcie_bus_cfg_write_dword(bus, PCIE2_BAR0_CORE2_WIN,  sizeof(uint32), base);
-		bar0 = (uchar *)bus->regs;
-		offset = (uint32 *)(bar0 + 0x4000 + (int_val & 0xFFF));
-		*offset = int_val2;
-		bcopy(&int_val2, arg, val_size);
-		dhdpcie_bus_cfg_write_dword(bus, PCIE2_BAR0_CORE2_WIN, sizeof(uint32), cur_base);
-	}
-		break;
-
 	case IOV_SVAL(IOV_PCIECOREREG):
 		si_corereg(bus->sih, bus->sih->buscoreidx, int_val, ~0, int_val2);
 		break;
-	case IOV_GVAL(IOV_SBREG):
+	case IOV_GVAL(IOV_BAR0_SECWIN_REG):
 	{
 		sdreg_t sdreg;
-		uint32 addr, coreidx;
+		uint32 addr, size;
 
 		bcopy(params, &sdreg, sizeof(sdreg));
 
 		addr = sdreg.offset;
-		coreidx =  (addr & 0xF000) >> 12;
+		size = sdreg.func;
 
-		int_val = si_corereg(bus->sih, coreidx, (addr & 0xFFF), 0, 0);
+		if (si_backplane_access(bus->sih, addr, size, &int_val, TRUE) != BCME_OK) {
+			DHD_ERROR(("Invalid size/addr combination \n"));
+			bcmerror = BCME_ERROR;
+			break;
+		}
+		bcopy(&int_val, arg, sizeof(int32));
+		break;
+	}
+
+	case IOV_SVAL(IOV_BAR0_SECWIN_REG):
+	{
+		sdreg_t sdreg;
+		uint32 addr, size;
+
+		bcopy(params, &sdreg, sizeof(sdreg));
+
+		addr = sdreg.offset;
+		size = sdreg.func;
+		if (si_backplane_access(bus->sih, addr, size, &sdreg.value, FALSE) != BCME_OK) {
+			DHD_ERROR(("Invalid size/addr combination \n"));
+			bcmerror = BCME_ERROR;
+		}
+		break;
+	}
+
+	case IOV_GVAL(IOV_SBREG):
+	{
+		sdreg_t sdreg;
+		uint32 addr, size;
+
+		bcopy(params, &sdreg, sizeof(sdreg));
+
+		addr = sdreg.offset;
+		size = sdreg.func;
+
+		if (si_backplane_access(bus->sih, addr, size, &int_val, TRUE) != BCME_OK) {
+			DHD_ERROR(("Invalid size/addr combination \n"));
+			bcmerror = BCME_ERROR;
+			break;
+		}
 		bcopy(&int_val, arg, sizeof(int32));
 		break;
 	}
@@ -3010,15 +3014,16 @@ dhdpcie_bus_doiovar(dhd_bus_t *bus, const bcm_iovar_t *vi, uint32 actionid, cons
 	case IOV_SVAL(IOV_SBREG):
 	{
 		sdreg_t sdreg;
-		uint32 addr, coreidx;
+		uint32 addr, size;
 
 		bcopy(params, &sdreg, sizeof(sdreg));
 
 		addr = sdreg.offset;
-		coreidx =  (addr & 0xF000) >> 12;
-
-		si_corereg(bus->sih, coreidx, (addr & 0xFFF), ~0, sdreg.value);
-
+		size = sdreg.func;
+		if (si_backplane_access(bus->sih, addr, size, &sdreg.value, FALSE) != BCME_OK) {
+			DHD_ERROR(("Invalid size/addr combination \n"));
+			bcmerror = BCME_ERROR;
+		}
 		break;
 	}
 

@@ -359,7 +359,7 @@ static const unsigned char VINT_TABLE[] = {
 #define UNDER_MINUS_20(temperature)	(temperature <= -20)
 #define UNDER_0(temperature)	(temperature <= 0)
 
-#define ACL_IS_ON(nit) 				(nit < 360)
+#define ACL_IS_ON(pb) 				(pb < 255)
 #define CAPS_IS_ON(level)	(level >= 41)
 
 #define NORMAL_TEMPERATURE			25	/* 25 degrees Celsius */

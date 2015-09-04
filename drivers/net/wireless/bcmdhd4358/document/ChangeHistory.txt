@@ -1,12 +1,30 @@
-BCM4358 DHD 1.47.32.1 for Android Lollipop T/Zero Project
+BCM4358 DHD 1.47.35 for Android Lollipop T/Zero Project
 Notes: 
 - Must sync up DHD and FW for additional message to eliminate spurious D0 interrupt.
 . additional message to eliminate spurious D0 interrupt is enabled from DHD 1.47.20 and FW 7.112.20.5/7.112.20.2(IBSS) 
 
+2015.8.7 - DHD 1.47.35
+Kernel Panic
+   - CSP:945943 Fixed Kernel panic due to invalid PKTID access
+
+Others
+   - CSP:925897 Added SDIO Init clock patch for Exynos3475 platform
+   - CSP:926894, 926726 Apply PCIe DPM Timeout patch for Exynos platform
+   - CSP:935340 Prevent disconnection status mismatch
+   - CSP:940495 Fixed disassociation timing during disconnection
+   - CSP:940724 Prevent WLC_E_ROAM event after roaming
+   - CSP:941261 File upload TPUT enhancement for S5Neo project
+   - CSP:943472 Fixed TCP ACK Suppress mode control by ARGOS Scheduler for Exynos platform
+   - Enabled IPv6 Packet forwarding on suspend state
+   - Fixed dongle trap issue by Lossless Roaming feature
+   - Increased Beacon timeout value (4 -> 6 seconds)
+
+
 2015.7.16 - DHD 1.47.32.1
 Others
    - Added Q2/993 country code (This patch should be sync up with same FW patch)
-   - Disabled DHDTCPACK_SUPPRESS for T Project, Enabled for Zero Project
+   - Disabled DHDTCPACK_SUPPRESS for T Project / Enabled for Zero Project
+
 
 2015.6.11 - DHD 1.47.32
 Kernel Panic

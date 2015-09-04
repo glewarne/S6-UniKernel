@@ -21,7 +21,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: dhd_pcie.h 533992 2015-02-12 06:55:52Z $
+ * $Id: dhd_pcie.h 572584 2015-07-20 08:54:22Z $
  */
 
 
@@ -232,6 +232,20 @@ extern int dhdpcie_oob_intr_register(dhd_bus_t *bus);
 extern void dhdpcie_oob_intr_unregister(dhd_bus_t *bus);
 extern void dhdpcie_oob_intr_set(dhd_bus_t *bus, bool enable);
 #endif /* BCMPCIE_OOB_HOST_WAKE */
+
+#ifdef USE_EXYNOS_PCIE_RC_PMPATCH
+#if defined(CONFIG_MACH_UNIVERSAL7420)
+#define EXYNOS_PCIE_CH_NUM	1
+extern int exynos_pcie_pm_suspend(int ch_num);
+extern int exynos_pcie_pm_resume(int ch_num);
+#elif defined(CONFIG_MACH_UNIVERSAL5433)
+#define	EXYNOS_PCIE_CH_NUM
+extern void exynos_pcie_pm_suspend(void);
+extern void exynos_pcie_pm_resume(void);
+#else
+#error "Not supported platform"
+#endif /* CONFIG_MACH_UNIVERSAL7420 */
+#endif /* USE_EXYNOS_PCIE_RC_PMPATCH */
 
 extern int dhd_buzzz_dump_dngl(dhd_bus_t *bus);
 #endif /* dhd_pcie_h */

@@ -17,7 +17,7 @@ struct lcd_seq_info {
 #define UNDER_0(temperature)	(temperature <= 0)
 
 
-#define ACL_IS_ON(nit) 				(nit < 360)
+#define ACL_IS_ON(pb) 				(pb < 255)
 #define CAPS_IS_ON(nit)				(nit >= 41)
 
 #define NORMAL_TEMPERATURE			25	/* 25 degrees Celsius */

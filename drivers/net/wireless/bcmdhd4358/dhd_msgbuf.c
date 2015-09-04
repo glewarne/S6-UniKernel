@@ -24,7 +24,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: dhd_msgbuf.c 539963 2015-03-10 12:42:38Z $
+ * $Id: dhd_msgbuf.c 572579 2015-07-20 08:48:47Z $
  */
 #include <typedefs.h>
 #include <osl.h>
@@ -1252,6 +1252,11 @@ dhd_pktid_map_free(dhd_pktid_map_handle_t *handle, uint32 nkey,
 	flags = DHD_PKTID_LOCK(map->pktid_lock);
 
 	ASSERT((nkey != DHD_PKTID_INVALID) && (nkey <= DHD_PKIDMAP_ITEMS(map->items)));
+
+	if ((nkey == DHD_PKTID_INVALID) || (nkey > DHD_PKIDMAP_ITEMS(map->items))) {
+		DHD_ERROR(("%s: PKTID %d is invalid\n", __FUNCTION__, nkey));
+		return NULL;
+	}
 
 	locker = &map->lockers[nkey];
 

@@ -505,7 +505,8 @@ static void run_pm_fsm(struct modem_link_pm *pm, enum pm_event event)
 			So, cp2ap_wakeup must always be checked before state
 			transition.
 			*/
-			if (!gpio_get_value(pm->gpio_cp2ap_wakeup)) {
+			if (!gpio_get_value(pm->gpio_cp2ap_wakeup) &&
+					!atomic_read(&pm->ref_cnt)) {
 				n_state = PM_STATE_CP_FREE;
 				pm->hold_requested = false;
 				release_ap2cp_wakeup(pm);

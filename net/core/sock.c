@@ -277,7 +277,10 @@ static const char *const af_family_slock_key_strings[AF_MAX+1] = {
   "slock-AF_IEEE802154", "slock-AF_CAIF" , "slock-AF_ALG"      ,
   "slock-AF_NFC"   , "slock-AF_VSOCK"    ,"slock-AF_MAX"
 };
-static const char *const af_family_clock_key_strings[AF_MAX+1] = {
+#ifndef CONFIG_MPTCP
+static const 
+#endif
+char *const af_family_clock_key_strings[AF_MAX+1] = {
   "clock-AF_UNSPEC", "clock-AF_UNIX"     , "clock-AF_INET"     ,
   "clock-AF_AX25"  , "clock-AF_IPX"      , "clock-AF_APPLETALK",
   "clock-AF_NETROM", "clock-AF_BRIDGE"   , "clock-AF_ATMPVC"   ,
@@ -298,7 +301,10 @@ static const char *const af_family_clock_key_strings[AF_MAX+1] = {
  * sk_callback_lock locking rules are per-address-family,
  * so split the lock classes by using a per-AF key:
  */
-static struct lock_class_key af_callback_keys[AF_MAX];
+#ifndef CONFIG_MPTCP
+static 
+#endif
+struct lock_class_key af_callback_keys[AF_MAX];
 
 /* Take into consideration the size of the struct sk_buff overhead in the
  * determination of these values, since that is non-constant across
@@ -1223,7 +1229,10 @@ lenout:
  *
  * (We also register the sk_lock with the lock validator.)
  */
-static inline void sock_lock_init(struct sock *sk)
+#ifndef CONFIG_MPTCP
+static inline 
+#endif
+void sock_lock_init(struct sock *sk)
 {
 	sock_lock_init_class_and_name(sk,
 			af_family_slock_key_strings[sk->sk_family],
@@ -1271,7 +1280,10 @@ void sk_prot_clear_portaddr_nulls(struct sock *sk, int size)
 }
 EXPORT_SYMBOL(sk_prot_clear_portaddr_nulls);
 
-static struct sock *sk_prot_alloc(struct proto *prot, gfp_t priority,
+#ifndef CONFIG_MPTCP
+static
+#endif
+struct sock *sk_prot_alloc(struct proto *prot, gfp_t priority,
 		int family)
 {
 	struct sock *sk;
@@ -1510,6 +1522,9 @@ struct sock *sk_clone_lock(const struct sock *sk, const gfp_t priority)
 		newsk->sk_userlocks	= sk->sk_userlocks & ~SOCK_BINDPORT_LOCK;
 
 		sock_reset_flag(newsk, SOCK_DONE);
+#ifdef CONFIG_MPTCP
+		sock_reset_flag(newsk, SOCK_MPTCP);
+#endif
 		skb_queue_head_init(&newsk->sk_error_queue);
 
 		filter = rcu_dereference_protected(newsk->sk_filter, 1);
@@ -2329,8 +2344,11 @@ void sock_init_data(struct socket *sock, struct sock *sk)
 	sk->sk_sndtimeo		=	MAX_SCHEDULE_TIMEOUT;
 
 	sk->sk_stamp = ktime_set(-1L, 0);
-
+	
+#ifndef CONFIG_MPTCP
 	sk->sk_pacing_rate = ~0U;
+#endif
+
 	/*
 	 * Before updating sk_refcnt, we must commit prior changes to memory
 	 * (Documentation/RCU/rculist_nulls.txt for details)

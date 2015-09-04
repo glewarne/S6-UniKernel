@@ -421,9 +421,3 @@ config DISABLE_SAVE_CAPACITY_MAX
 	  capacity_max is saved in /efs/FactoryApp/batt_capacity_max
 	  capacity_max is restored after boot up
 	  You can find the code in healthd
-
-config STORE_MODE
-       bool "enable store mode"
-       default n
-       help
-	 Say Y to enable CONFIG_STORE_MODE

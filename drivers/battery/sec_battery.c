@@ -2716,18 +2716,18 @@ continue_monitor:
 			"%s: battery->stability_test(%d), battery->eng_not_full_status(%d)\n",
 			__func__, battery->stability_test, battery->eng_not_full_status);
 #endif
-	if (battery->store_mode && !lpcharge && (battery->cable_type != POWER_SUPPLY_TYPE_BATTERY)) {
+	if (battery->store_mode && battery->cable_type != POWER_SUPPLY_TYPE_BATTERY) {
 
 		dev_info(battery->dev,
 			"%s: @battery->capacity = (%d), battery->status= (%d), battery->store_mode=(%d)\n",
 			__func__, battery->capacity, battery->status, battery->store_mode);
 
-		if ((battery->capacity >= STORE_MODE_CHARGING_MAX) && (battery->status == POWER_SUPPLY_STATUS_CHARGING)) {
+		if ((battery->capacity >= 35) && (battery->status == POWER_SUPPLY_STATUS_CHARGING)) {
 			sec_bat_set_charging_status(battery,
 					POWER_SUPPLY_STATUS_DISCHARGING);
 			sec_bat_set_charge(battery, false);
 		}
-		if ((battery->capacity <= STORE_MODE_CHARGING_MIN) && (battery->status == POWER_SUPPLY_STATUS_DISCHARGING)) {
+		if ((battery->capacity <= 30) && (battery->status == POWER_SUPPLY_STATUS_DISCHARGING)) {
 			sec_bat_set_charging_status(battery,
 					POWER_SUPPLY_STATUS_CHARGING);
 			sec_bat_set_charge(battery, true);
@@ -5819,11 +5819,7 @@ static int __devinit sec_battery_probe(struct platform_device *pdev)
 	battery->cable_type = POWER_SUPPLY_TYPE_BATTERY;
 	battery->test_mode = 0;
 	battery->factory_mode = false;
-#if defined(CONFIG_STORE_MODE)
-	battery->store_mode = true;
-#else
 	battery->store_mode = false;
-#endif
 	battery->slate_mode = false;
 	battery->is_hc_usb = false;
 	battery->ignore_siop = false;

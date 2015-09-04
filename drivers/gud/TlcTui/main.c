@@ -126,10 +126,27 @@ static long tui_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 	return ret;
 }
 
+atomic_t fileopened;
+static int tui_open(struct inode *inode, struct file *file)
+{
+	printk(KERN_INFO "TUI file opened");
+	atomic_inc(&fileopened);
+	return 0;
+}
+
+static int tui_release(struct inode *inode, struct file *file)
+{
+	printk(KERN_INFO "TUI file closed");
+	atomic_dec(&fileopened);
+	return 0;
+}
+
 static const struct file_operations tui_fops = {
 	.owner = THIS_MODULE,
 	/*.unlocked_ioctl = tui_ioctl,*/
 	.compat_ioctl = tui_ioctl,
+	.open = tui_open,
+	.release = tui_release,
 };
 
 /*--------------------------------------------------------------------------- */
@@ -142,6 +159,8 @@ static int __init tlc_tui_init(void)
 	dev_t devno;
 	int err;
 	static struct class *tui_class;
+
+	atomic_set(&fileopened, 0);
 
 	err = alloc_chrdev_region(&devno, 0, 1, TUI_DEV_NAME);
 	if (err) {
