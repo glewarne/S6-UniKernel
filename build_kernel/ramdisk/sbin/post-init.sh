@@ -53,10 +53,10 @@ if [ "`grep "kernel.vm=tuned" /system/unikernel.prop`" != "" ]; then
 	echo "400"	> /proc/sys/vm/dirty_expire_centisecs
 	echo "400"	> /proc/sys/vm/dirty_writeback_centisecs
 	echo "145"	> /proc/sys/vm/swappiness
-	echo "32"	> /sys/block/sda/queue/read_ahead_kb
-	echo "32"	> /sys/block/sdb/queue/read_ahead_kb
-	echo "32"	> /sys/block/sdb/queue/read_ahead_kb
-	echo "32"	> /sys/block/vnswap0/queue/read_ahead_kb
+	echo "64"	> /sys/block/sda/queue/read_ahead_kb
+	echo "64"	> /sys/block/sdb/queue/read_ahead_kb
+	echo "64"	> /sys/block/sdb/queue/read_ahead_kb
+	echo "64"	> /sys/block/vnswap0/queue/read_ahead_kb
 else
 	# start swap with stock 1.2gb vnswap0
 	/sbin/sswap -s -f 1280
@@ -65,23 +65,23 @@ fi
 # Parse Interactive tuning from prop
 if [ "`grep "kernel.interactive=performance" /system/unikernel.prop`" != "" ]; then
 	#apollo
-	echo "25000"	> /sys/devices/system/cpu/cpu0/cpufreq/interactive/min_sample_time
+	echo "35000"	> /sys/devices/system/cpu/cpu0/cpufreq/interactive/min_sample_time
 	echo "15000"	> /sys/devices/system/cpu/cpu0/cpufreq/interactive/timer_rate
 	#atlas
-	echo "25000"	> /sys/devices/system/cpu/cpu4/cpufreq/interactive/min_sample_time
+	echo "35000"	> /sys/devices/system/cpu/cpu4/cpufreq/interactive/min_sample_time
 	echo "15000"	> /sys/devices/system/cpu/cpu4/cpufreq/interactive/timer_rate
 elif [ "`grep "kernel.interactive=battery" /system/unikernel.prop`" != "" ]; then
 	#apollo
-	echo "15000"	> /sys/devices/system/cpu/cpu0/cpufreq/interactive/min_sample_time
+	echo "19000"	> /sys/devices/system/cpu/cpu0/cpufreq/interactive/min_sample_time
 	echo "45000"	> /sys/devices/system/cpu/cpu0/cpufreq/interactive/timer_rate
 	#atlas
-	echo "10000"	> /sys/devices/system/cpu/cpu4/cpufreq/interactive/min_sample_time
+	echo "19000"	> /sys/devices/system/cpu/cpu4/cpufreq/interactive/min_sample_time
 	echo "45000"	> /sys/devices/system/cpu/cpu4/cpufreq/interactive/timer_rate
 fi
 
 # Parse GApps wakelock fix from prop
 if [ "`grep "kernel.gapps=true" /system/unikernel.prop`" != "" ]; then
-	sleep 30
+	sleep 60
 	su -c "pm enable com.google.android.gms/.update.SystemUpdateActivity"
 	su -c "pm enable com.google.android.gms/.update.SystemUpdateService"
 	su -c "pm enable com.google.android.gms/.update.SystemUpdateService$ActiveReceiver"
