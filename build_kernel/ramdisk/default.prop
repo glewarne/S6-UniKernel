@@ -24,3 +24,6 @@ rild.libpath=/system/lib64/libsec-ril.so
 # OTHER FIXES
 wlan.wfd.hdcp=disable
 ro.securestorage.support=false
+
+# IMPORT FROM G928
+persist.radio.add_power_save=1
